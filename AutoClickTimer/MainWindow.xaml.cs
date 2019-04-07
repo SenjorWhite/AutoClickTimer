@@ -20,7 +20,7 @@ using System.Threading;
 namespace AutoClickTimer
 {
     /// <summary>
-    /// MainWindow.xaml 的互動邏輯
+    /// MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
     {
@@ -28,6 +28,7 @@ namespace AutoClickTimer
         {
             InitializeComponent();
             Topmost = true;
+            timePicker.Text = new DateTime().ToLongDateString();
 
             new Thread(() =>
             {
@@ -51,30 +52,47 @@ namespace AutoClickTimer
             if (buttonActivate.Content.Equals("Activate"))
             {
                 buttonActivate.Content = "Waiting...";
+                enableConfiguration(false);
+                DateTime triggerTime = DateTime.Parse(timePicker.Text);
                 double XPixelPosition = double.Parse(textBoxXPosition.Text);
                 double YPixelPosition = double.Parse(textBoxYPosition.Text);
 
                 new Thread(() =>
                 {
-                    int remainSecond = 9999;
+                    TimeSpan remainTime;
+
                     while (true)
-                    {                        
+                    {
+                        remainTime = triggerTime - DateTime.Now;
+
                         Dispatcher.BeginInvoke(new Action(() =>
                         {
-                            remainSecond = int.Parse(textBoxCountDownTime.Text);
-                            textBoxCountDownTime.Text = (remainSecond - 1).ToString();
+                            countDownLabel.Content = remainTime.ToString();
                         }));
 
-                        if (remainSecond <= 0)
+                        if (triggerTime < DateTime.Now)
                         {
                             triggerClick(XPixelPosition, YPixelPosition);
+                            enableConfiguration(true);
                             break;
                         }
 
-                        Thread.Sleep(1000);
+                        Thread.Sleep(200);
                     }
                 }).Start();
             }
+        }
+
+        private void enableConfiguration(bool isEnable)
+        {
+            Dispatcher.Invoke(new Action(() =>
+            {
+                buttonActivate.IsEnabled = isEnable;
+                textBoxXPosition.IsEnabled = isEnable;
+                textBoxYPosition.IsEnabled = isEnable;
+                timePicker.IsEnabled = isEnable;
+            }
+            ));
         }
 
         private void setButtonContent(string content)
@@ -85,17 +103,16 @@ namespace AutoClickTimer
             }));
         }
 
-        private void triggerClick(double x,double y)
+        private void triggerClick(double x, double y)
         {
-            double XScaleRate = 65535 / 1920;
-            double YScaleRate = 65535 / 1080;
+            double XScaleRate = 65535.0 / 1919.0;
+            double YScaleRate = 65535.0 / 1079.0;
 
             InputSimulator sim = new InputSimulator();
             sim.Mouse.MoveMouseTo(XScaleRate * x, YScaleRate * y);
             sim.Mouse.LeftButtonClick();
             setButtonContent("Activate");
         }
-
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
