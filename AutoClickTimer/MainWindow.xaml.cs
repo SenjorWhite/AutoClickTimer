@@ -24,11 +24,17 @@ namespace AutoClickTimer
     /// </summary>
     public partial class MainWindow : Window
     {
+
+        const double XScaleRate = 65535.0 / 1919.0;
+        const double YScaleRate = 65535.0 / 1079.0;
+        List<ClickEvent> clickEventList = new List<ClickEvent>();
+
         public MainWindow()
         {
             InitializeComponent();
             Topmost = true;
             timePicker.Text = new DateTime().ToLongDateString();
+            clickEventDataGrid.ItemsSource = clickEventList;
 
             new Thread(() =>
             {
@@ -47,15 +53,31 @@ namespace AutoClickTimer
             }).Start();
         }
 
+        private void logOutClickEvent(ClickEvent clickEvent)
+        {
+            System.Console.Write(clickEvent.triggerButton.ToString());
+            System.Console.Write(",");
+            System.Console.Write(clickEvent.triggerClick.ToString());
+            System.Console.Write(",");
+            System.Console.Write(clickEvent.waitTime.ToString());
+            System.Console.Write(",");
+            System.Console.Write(clickEvent.X.ToString());
+            System.Console.Write(",");
+            System.Console.Write(clickEvent.Y.ToString());
+            System.Console.WriteLine();
+        }
+
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             if (buttonActivate.Content.Equals("Activate"))
             {
+                clickEventDataGrid.CommitEdit();
+
                 buttonActivate.Content = "Waiting...";
                 enableConfiguration(false);
                 DateTime triggerTime = DateTime.Parse(timePicker.Text);
-                double XPixelPosition = double.Parse(textBoxXPosition.Text);
-                double YPixelPosition = double.Parse(textBoxYPosition.Text);
+                //double XPixelPosition = double.Parse(textBoxXPosition.Text);
+                //double YPixelPosition = double.Parse(textBoxYPosition.Text);
 
                 new Thread(() =>
                 {
@@ -72,7 +94,7 @@ namespace AutoClickTimer
 
                         if (triggerTime < DateTime.Now)
                         {
-                            triggerClick(XPixelPosition, YPixelPosition);
+                            triggerClick();
                             enableConfiguration(true);
                             break;
                         }
@@ -88,8 +110,8 @@ namespace AutoClickTimer
             Dispatcher.Invoke(new Action(() =>
             {
                 buttonActivate.IsEnabled = isEnable;
-                textBoxXPosition.IsEnabled = isEnable;
-                textBoxYPosition.IsEnabled = isEnable;
+                //textBoxXPosition.IsEnabled = isEnable;
+                //textBoxYPosition.IsEnabled = isEnable;
                 timePicker.IsEnabled = isEnable;
             }
             ));
@@ -103,20 +125,103 @@ namespace AutoClickTimer
             }));
         }
 
-        private void triggerClick(double x, double y)
+        private void triggerClick()
         {
-            double XScaleRate = 65535.0 / 1919.0;
-            double YScaleRate = 65535.0 / 1079.0;
 
-            InputSimulator sim = new InputSimulator();
-            sim.Mouse.MoveMouseTo(XScaleRate * x, YScaleRate * y);
-            sim.Mouse.LeftButtonClick();
+            for(int i = 0; i < clickEventList.Count; i++)
+            {
+                ClickEvent currentEvnet = clickEventList[i];
+
+                Dispatcher.BeginInvoke(new Action(()=> 
+                {
+                    clickEventDataGrid.Items.MoveCurrentTo(currentEvnet);
+                    logOutClickEvent(currentEvnet);
+                    DataGridRow row = (DataGridRow)clickEventDataGrid.ItemContainerGenerator.ContainerFromIndex(i);
+                    row.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+                }));
+
+                invokeClickEvent(currentEvnet);
+            }
+
+            //sim.Mouse.MoveMouseTo(XScaleRate * x, YScaleRate * y);
+            //sim.Mouse.LeftButtonClick();
             setButtonContent("Activate");
         }
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         static extern bool GetCursorPos(ref Point lpPoint);
+
+        private void invokeClickEvent(ClickEvent clickEvent)
+        {
+            if (clickEvent.triggerButton == MouseButton.Wait)
+            {
+                Thread.Sleep(clickEvent.waitTime * 1000);
+            }
+            else
+            {
+                double targetX = clickEvent.X * XScaleRate;
+                double targetY = clickEvent.Y * YScaleRate;
+                InputSimulator sim = new InputSimulator();
+                sim.Mouse.MoveMouseTo(targetX, targetY);
+                if (clickEvent.triggerButton == MouseButton.Left)
+                {
+                    if (clickEvent.triggerClick == ClickMode.Single)
+                    {
+                        sim.Mouse.LeftButtonClick();
+                    }
+                    else if (clickEvent.triggerClick == ClickMode.Double)
+                    {
+                        sim.Mouse.LeftButtonDoubleClick();
+                    }
+                }
+                else if (clickEvent.triggerButton == MouseButton.Right)
+                {
+                    if (clickEvent.triggerClick == ClickMode.Single)
+                    {
+                        sim.Mouse.RightButtonClick();
+                    }
+                    else if (clickEvent.triggerClick == ClickMode.Double)
+                    {
+                        sim.Mouse.RightButtonDoubleClick();
+                    }
+                }
+            }
+        }
+
+        private void Expander_Expanded(object sender, RoutedEventArgs e)
+        {
+            this.Height = 700;
+        }
+
+        private void Expander_Collapsed(object sender, RoutedEventArgs e)
+        {
+            this.Height = 270;
+        }
+
+        private void AddNewClickEventButton_Click(object sender, RoutedEventArgs e)
+        {
+            clickEventList.Add(new ClickEvent()
+            {
+                triggerButton = MouseButton.Left,
+                triggerClick = ClickMode.Single,
+                X = 0,
+                Y = 0
+            });
+            clickEventDataGrid.Items.Refresh();
+        }
+
+        private void AddWaitEventButton_Click(object sender, RoutedEventArgs e)
+        {
+            clickEventList.Add(new ClickEvent()
+            {
+                triggerButton = MouseButton.Wait,
+                triggerClick = ClickMode.Wait,
+                X = -1,
+                Y = -1
+            });
+            clickEventDataGrid.Items.Refresh();
+        }
     }
 }
 
