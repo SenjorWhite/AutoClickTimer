@@ -16,6 +16,7 @@ using System.Windows.Shapes;
 using System.Runtime.InteropServices;
 using Point = System.Drawing.Point;
 using System.Threading;
+using Microsoft.Win32;
 
 namespace AutoClickTimer
 {
@@ -216,11 +217,34 @@ namespace AutoClickTimer
             clickEventList.Add(new ClickEvent()
             {
                 triggerButton = MouseButton.Wait,
-                triggerClick = ClickMode.Wait,
+                triggerClick = ClickMode.None,
                 X = -1,
                 Y = -1
             });
             clickEventDataGrid.Items.Refresh();
+        }
+
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            SaveFileDialog dialog = new SaveFileDialog();
+            if (dialog.ShowDialog() == true)
+            {
+                EventAccessor accessor = new EventAccessor();
+                accessor.WriteEventFile(dialog.FileName, clickEventList);
+            }
+        }
+
+        private void LoadButton_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog dialog = new OpenFileDialog();
+            if(dialog.ShowDialog()== true)
+            {
+                EventAccessor accessor = new EventAccessor();
+                List<ClickEvent> events = accessor.ReadEventFile(dialog.FileName);
+                clickEventList = events;
+                clickEventDataGrid.ItemsSource = clickEventList;
+                clickEventDataGrid.Items.Refresh();
+            }
         }
     }
 }

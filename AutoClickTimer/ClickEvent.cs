@@ -17,7 +17,7 @@ namespace AutoClickTimer
     {
         Single,
         Double,
-        Wait
+        None
     }
 
     public class ClickEvent

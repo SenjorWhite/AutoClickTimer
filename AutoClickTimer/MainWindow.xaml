@@ -26,6 +26,8 @@
                 <Button x:Name="addWaitEventButton" Content="+ Add A Wait Event" HorizontalAlignment="Left" Margin="174,10,0,0" VerticalAlignment="Top" Width="144" Click="AddWaitEventButton_Click"/>
             </Grid>
         </Expander>
+        <Button x:Name="saveButton" Content="Save" HorizontalAlignment="Left" Margin="254,17,0,0" VerticalAlignment="Top" Width="68" Click="SaveButton_Click"/>
+        <Button x:Name="loadButton" Content="Load" HorizontalAlignment="Left" Margin="254,44,0,0" VerticalAlignment="Top" Width="68" Click="LoadButton_Click"/>
 
     </Grid>
 </Window>
